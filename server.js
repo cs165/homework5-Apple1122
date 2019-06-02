@@ -15,22 +15,19 @@ const sheet = googleSheets(key.client_email, key.private_key, SPREADSHEET_ID);
 app.use(express.static('public'));
 
 function getColumnIndex(rows, column) {
+  var idx;
+  for(idx = 0; idx < rows[0].length; ++idx)
+    if(rows[0][idx].toLowerCase() === column.toLowerCase())
+      break;
 
-  for(var i = 0; i < rows[0].length; ++i)
-    if(rows[0][i].toLowerCase() === column.toLowerCase())
-      return i;
-  return null;
+  return idx;
 }
 
 function getRowIndex(rows, col, value) {
-  if(col === null)
-    return null;
   var r;
-  
   for(r = 1; r < rows.length; ++r)
-    if(rows[r][col] === value)
+    if(rows[r][col] == value)
       break;
-
   return r;
 }
 
@@ -127,9 +124,6 @@ async function onDelete(req, res) {
     console.log("not such this row");
     res.json({response: "success"});
   }
-
-
-  res.json( { status: 'unimplemented'} );
 }
 app.delete('/api/:column/:value',  onDelete);
 
