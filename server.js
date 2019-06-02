@@ -6,7 +6,7 @@ const key = require('./privateSettings.json');
 
 // TODO(you): Change the value of this string to the spreadsheet id for your
 // GSA spreadsheet. See HW5 spec for more information.
-const SPREADSHEET_ID = '__YOUR__SPREADSHEET__ID__HERE__';
+const SPREADSHEET_ID = '1bONwD2DYwgQkgpOZ1pqUDAO7dLmJ8f1IdNFdNCzaBVo';
 
 const app = express();
 const jsonParser = bodyParser.json();
@@ -14,23 +14,68 @@ const sheet = googleSheets(key.client_email, key.private_key, SPREADSHEET_ID);
 
 app.use(express.static('public'));
 
+function getColumnIndex(rows, column) {
+
+  for(var i = 0; i < rows[0].length; ++i)
+    if(rows[0][i].toLowerCase() === column.toLowerCase())
+      return i;
+  return null;
+}
+
+function getRowIndex(rows, col, value) {
+  if(col === null)
+    return null;
+  var r;
+  
+  for(r = 1; r < rows.length; ++r)
+    if(rows[r][col] === value)
+      break;
+
+  return r;
+}
+
+
+
+
 async function onGet(req, res) {
   const result = await sheet.getRows();
   const rows = result.rows;
   console.log(rows);
 
-  // TODO(you): Finish onGet.
+  var jsonResult = [];
 
-  res.json( { status: 'unimplemented'} );
+  for(var i = 0; i < rows.length - 1; ++i)
+  {
+    var row = {};
+
+    for(var j = 0; j < rows[0].length; ++j)
+    {
+      row[rows[0][j]] = rows[i+1][j];
+    }
+    jsonResult[i] = row;
+  }
+
+  res.json(jsonResult);
 }
 app.get('/api', onGet);
+
 
 async function onPost(req, res) {
   const messageBody = req.body;
 
   // TODO(you): Implement onPost.
+  const result = await sheet.getRows();
+  const rows = result.rows;
 
-  res.json( { status: 'unimplemented'} );
+  var newRow = [];
+
+  for(var key in messageBody)
+  {
+    newRow[getColumnIndex(rows, key)] = messageBody[key];
+  }
+  console.log(newRow);
+  const message = await sheet.appendRow(newRow);
+  res.json(message);
 }
 app.post('/api', jsonParser, onPost);
 
@@ -40,8 +85,21 @@ async function onPatch(req, res) {
   const messageBody = req.body;
 
   // TODO(you): Implement onPatch.
+  const result = await sheet.getRows();
+  const rows = result.rows;
 
-  res.json( { status: 'unimplemented'} );
+  var col = getColumnIndex(rows, column);
+  var newRow = [];
+  newRow[col]= value;
+  // console.log(rows[0][col]);
+  // console.log(messageBody);
+  for(var key in messageBody)
+  {
+    newRow[getColumnIndex(rows, key)] = messageBody[key];
+  }
+  console.log(newRow);
+  const message = await sheet.appendRow(newRow);
+  res.json(message);
 }
 app.patch('/api/:column/:value', jsonParser, onPatch);
 
@@ -50,6 +108,26 @@ async function onDelete(req, res) {
   const value  = req.params.value;
 
   // TODO(you): Implement onDelete.
+  const result = await sheet.getRows();
+  const rows = result.rows;
+
+  // get column index;
+  var col = getColumnIndex(rows, column);
+  // get row index
+  var r = getRowIndex(rows, col, value);
+
+  if(r < rows.length)
+  {
+    console.log(rows[r]);
+    const message = await sheet.deleteRow(r);
+    res.json(message);
+  }
+  else
+  {
+    console.log("not such this row");
+    res.json({response: "success"});
+  }
+
 
   res.json( { status: 'unimplemented'} );
 }
@@ -62,3 +140,5 @@ const port = process.env.PORT || 3000;
 app.listen(port, function () {
   console.log(`Server listening on port ${port}!`);
 });
+
+
